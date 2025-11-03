@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource>
+        <file>fonts/amarurgt.ttf</file>
+        <file>fonts/NimbusMono.otf</file>
+    </qresource>
+</RCC>
