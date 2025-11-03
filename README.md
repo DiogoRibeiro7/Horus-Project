@@ -156,7 +156,7 @@ Named after the ancient Egyptian god of the sky, kingship, and protection - ofte
 brew install qt
 
 # Clone the repository
-git clone https://github.com/joaoliveira6704/horus-project.git
+git clone https://github.com/joaoliveira6704/Horus-Project.git
 cd horus-project
 
 # Build with CMake
@@ -173,7 +173,7 @@ sudo apt-get update
 sudo apt-get install qt6-base-dev build-essential cmake
 
 # Clone and build
-git clone https://github.com/joaoliveira6704/horus-project.git
+git clone https://github.com/joaoliveira6704/Horus-Project.git
 cd horus-project
 mkdir build && cd build
 cmake ..
@@ -186,7 +186,7 @@ make
 # Install Qt from https://www.qt.io/download-qt-installer
 
 # Clone repository
-git clone https://github.com/joaoliveira6704/horus-project.git
+git clone https://github.com/joaoliveira6704/Horus-Project.git
 cd horus-project
 
 # Build with CMake
@@ -403,7 +403,7 @@ We welcome contributions! Here's how you can help:
 - Font loading may fail silently on some systems (falls back to system fonts)
 - High zoom levels (>8.0) may show rendering artifacts
 
-See [Issues](https://github.com/yourusername/horus-project/issues) for full list.
+See [Issues](https://github.com/joaoliveira6704/Horus-Project/issues) for full list.
 
 ---
 
@@ -456,9 +456,9 @@ SOFTWARE.
 
 ## 📬 Contact
 
-- **Project**: [Horus Project](https://github.com/joaoliveira6704/horus-project)
-- **Issues**: [GitHub Issues](https://github.com/joaoliveira6704/horus-project/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/joaoliveira6704/horus-project/discussions)
+- **Project**: [Horus Project](https://github.com/joaoliveira6704/Horus-Project)
+- **Issues**: [GitHub Issues](https://github.com/joaoliveira6704/Horus-Project/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/joaoliveira6704/Horus-Project/discussions)
 
 ---
 
