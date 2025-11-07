@@ -76,7 +76,7 @@ public:
 private slots:
     void updateSimulation() {
         // Simulate flight data (replace with real telemetry parsing)
-        simTime += 0.02;
+        simTime += 0.0;
 
         // Simulate gentle banking and pitching
         float pitch = 90.0f * std::sin(simTime * 0.2);
@@ -85,7 +85,6 @@ private slots:
         float heading = std::fmod(simTime * 10.0, 360.0);
         // Simulate other parameters
         float altitudeRate = 2000.0f;
-        float altitude = 200.0f + altitudeRate * std::sin(simTime * 0.2);
         float batteryState = 4.2f + 1.0f * std::sin(simTime * 5);
         // Quantity of propellers in uav (for rpm quantity)
         int propQuantity = 4;
@@ -95,6 +94,9 @@ private slots:
             static_cast<int>(2500 + 1543.0f * std::sin(simTime * 0.27)),
             static_cast<int>(2500 + 1673.0f * std::sin(simTime * 0.29))
         };
+        float QNH = 29.92f;
+        float altitude = 8500.00f + 1 * std::sin(simTime * 0.2);
+        float OAT = 8.0f;
         std::string flightMode = "ATLC Takeoff Active";
         std::time_t now = std::time(nullptr);
         std::tm* localTime = std::localtime(&now);
@@ -103,7 +105,7 @@ private slots:
         std::string timeStr = ss.str();
 
         // Update attitude indicator
-        attitudeIndicator->setAttitude(pitch, roll, altitude, speed, heading, flightMode, timeStr, rpm, batteryState, propQuantity);
+        attitudeIndicator->setAttitude(pitch, roll, altitude, speed, heading,QNH, flightMode, timeStr, rpm, batteryState, propQuantity, OAT);
 
         // Update displays
         altLabel->setText(QString("ALT: %1 ft").arg(altitude, 0, 'f', 1));

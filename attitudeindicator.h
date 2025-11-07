@@ -18,7 +18,8 @@ public:
     }
 
 
-    void setAttitude(float pitchDeg, float rollDeg, float altFt, float speedKts, float headingDeg, std::string fltMode, std::string timeCurr, const int rpmVal[4], float batteryStateVal, int propQuantityVal) {
+    void setAttitude(float pitchDeg, float rollDeg, float altFt, float speedKts, float headingDeg,float qnhVal, std::string fltMode, std::string timeCurr, const int rpmVal[4], float batteryStateVal, int propQuantityVal, float
+        oatVal) {
         pitch = -pitchDeg;
         roll = rollDeg;
         altitude = altFt;
@@ -26,6 +27,8 @@ public:
         heading = headingDeg;
         flightMode = fltMode;
         currTime = timeCurr;
+        QNH = qnhVal;
+        OAT = oatVal;
         for (int i = 0; i < 4; i++) {
             rpm[i] = rpmVal[i];
         }
@@ -77,6 +80,8 @@ protected:
         drawClock(painter);
 
         drawGauges(painter);
+
+        drawQNH(painter);
     }
 
 private:
@@ -249,6 +254,17 @@ private:
         painter.restore();
     }
 
+    int calculateBaroAltitudeInt() {
+        float hpaQNH = QNH * 33.865;
+        float baroAlt = altitude + (hpaQNH - 1013.25f) * 30.0f;
+        float ISA = 15.0f;
+        float ISA_Temp = ISA - 2.0f * (baroAlt / 1000.0f);
+        float ISA_Dev = OAT - ISA_Temp;
+        float densityAltitude = (4.0f * (baroAlt / 1000.0f) * ISA_Dev) + baroAlt;
+
+        return static_cast<int>(densityAltitude);
+    }
+
     void drawAltitudeTape(QPainter &painter) {
         painter.save();
         // --- Layout constants ---
@@ -275,9 +291,9 @@ private:
         painter.drawLine(tapeX-5, tapeHeight/2, tapeX+tapeWidth, tapeHeight/2);
         // Top Line
         painter.drawLine(tapeX-5, -tapeHeight/2, tapeX+tapeWidth, -tapeHeight/2);
-
+        int baroAltitude = calculateBaroAltitudeInt();
         for (int alt = -90000; alt <= 90000; alt += stepFt) {
-            float y = (altitude - alt) * (tickSpacing / (float)stepFt);
+            float y = (baroAltitude - alt) * (tickSpacing / (float)stepFt);
 
             if (y < -60 || y > 60) continue;
 
@@ -285,20 +301,20 @@ private:
             painter.drawLine(tapeX - 4.5, y, tapeX, y);
 
             // Label only every 500 ft
-            if (alt % labelStep == 0 and (alt != int(altitude) || alt != int(altitude-1))) {
+            if (alt % labelStep == 0 and (alt != int(baroAltitude) || alt != int(baroAltitude-1))) {
                 QString text = QString::number(alt);
                 painter.drawText(tapeX + 2, y+1, text);
             }
         }
 
-        if (altitude >= 0) {
+        if (baroAltitude >= 0) {
             // --- Draw current altitude box ---
             QRectF box(tapeX + 2, -3, 15, 6);
             painter.setBrush(Qt::black);
             painter.setPen(QPen(Qt::red, 0.5));
             painter.drawRect(box);
             painter.setPen(QPen(Qt::green, 0.5));
-            QString text = QString::number(int(altitude));
+            QString text = QString::number(int(baroAltitude));
             painter.drawText(tapeX + 4, 1, text);
         }
         else {
@@ -308,7 +324,7 @@ private:
             painter.setPen(QPen(Qt::red, 0.5));
             painter.drawRect(box);
             painter.setPen(QPen(Qt::green, 0.5));
-            QString text = QString::number(abs(int(altitude)));
+            QString text = QString::number(abs(int(baroAltitude)));
             painter.drawText(tapeX + 4, 1, "NEG " + text);
         }
         painter.drawText(tapeX-3, -62, "ALT AGL");
@@ -349,8 +365,13 @@ private:
             }
             if (y < -60 || y > 60) continue;
 
-            // Draw tick
-            painter.drawLine(-tapeX + 4.5, y, -tapeX, y);
+            if (speed >= 0) {
+                // Draw tick
+                painter.drawLine(-tapeX + 4.5, y, -tapeX, y);
+            }
+
+            // Draw Current speed tick
+            painter.drawLine(-tapeX + 4.5, 0, -tapeX, 0);
 
             // Label only every 500 ft
             if (int(speed-3) > spd || spd > int(speed+3)) {
@@ -462,6 +483,7 @@ private:
         painter.setPen(QPen(Qt::white, 0.5));
         painter.setFont(QFont(customFontFamily, 3));
         painter.drawText(-70, 90 - 8, "CLK (GMT)");
+        painter.setPen(QPen(Qt::yellow, 0.5));
         painter.drawText(-69.75, 95 - 8, QString::fromLatin1(currTime));
     }
 
@@ -501,6 +523,24 @@ private:
         painter.restore();
     }
 
+    void drawQNH(QPainter &painter) {
+        painter.save();
+
+        painter.setPen(QPen(Qt::white, 0.5));
+        QString textQNH = QString::number(float(QNH*33.865), 'f',2);
+        painter.drawText(55, 70, "INHG");
+        painter.setPen(QPen(Qt::yellow, 0.5));
+        painter.drawText(65, 70, textQNH);
+
+        painter.setPen(QPen(Qt::white, 0.5));
+        QString textHPa = QString::number(float(QNH), 'f',2);
+        painter.drawText(55, 75, "HPA");
+        painter.setPen(QPen(Qt::yellow, 0.5));
+        painter.drawText(65, 75, textHPa);
+
+        painter.restore();
+    }
+
 private:
     float pitch; // degrees
     float roll;  // degrees
@@ -510,6 +550,8 @@ private:
     int rpm[4];
     float batteryState;
     int propQuantity;
+    float QNH;
+    float OAT;
     std::string flightMode;
     std::string currTime;
     QString customFontFamily;  // Custom font name
