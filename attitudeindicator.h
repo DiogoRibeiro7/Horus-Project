@@ -18,7 +18,7 @@ public:
     }
 
 
-    void setAttitude(float pitchDeg, float rollDeg, float altFt, float speedKts, float headingDeg, std::string fltMode, std::string timeCurr) {
+    void setAttitude(float pitchDeg, float rollDeg, float altFt, float speedKts, float headingDeg, std::string fltMode, std::string timeCurr, int rpmVal, float batteryStateVal) {
         pitch = -pitchDeg;
         roll = rollDeg;
         altitude = altFt;
@@ -26,6 +26,8 @@ public:
         heading = headingDeg;
         flightMode = fltMode;
         currTime = timeCurr;
+        rpm = rpmVal;
+        batteryState = batteryStateVal;
         update(); // Trigger repaint
     }
 
@@ -70,6 +72,8 @@ protected:
         drawFlightMode(painter);
 
         drawClock(painter);
+
+        drawGauges(painter);
     }
 
 private:
@@ -449,75 +453,22 @@ private:
     void drawGauges(QPainter &painter) {
         painter.save();
 
-        const int radius = 42;      // was 80
-        const int tickLong = 2;     // was 10 (long ticks)
-        const int tickShort = 1;  // was 5 (short ticks)
-        const int pointerHeight = 3; // was 15
-        const float pointerWidth = 2.5f;
-        const float centerMarkWidth = 2.5f;
-        const int centerMarkHeight = 6; // was 12
+        const int radius = 8;
 
-        // Draw roll scale arc (flipped upward)
-        painter.setPen(QPen(Qt::green, 0.5));
+        painter.setPen(QPen(Qt::red, 0.5));
 
-        //Draw arc
-        /*painter.drawArc(-radius, -radius, 2*radius, 2*radius, 210 * 16, 120 * 16);*/
+        painter.drawArc(75, -40, 2*radius, 2*radius, 210 * 16, 280 * 16);
+        painter.setPen(QPen(Qt::yellow, 0.5));
+        painter.setFont(QFont(customFontFamily, 3));
+        QString textRpm = QString::number(int(rpm));
+        painter.drawText(77.5, -20, "RPM");
+        painter.setPen(QPen(Qt::white, 0.5));
+        painter.drawText(77.5, -30, textRpm);
 
-        // Draw roll marks (flipped vertically)
-        for (int angle = -20; angle <= 20; angle += 10) {
-            painter.save();
-            painter.rotate(angle);
-            painter.drawLine(0, radius - tickShort, 0, radius); // short ticks 10,20
-            painter.restore();
-        }
-
-        for (int angle = -30; angle <= 30; angle += 60) {
-            painter.save();
-            painter.rotate(angle);
-            painter.drawLine(0, radius - tickLong, 0, radius); // long ticks 30
-            painter.restore();
-        }
-
-        for (int angle = -45; angle <= 45; angle += 90) {
-            painter.save();
-            painter.rotate(angle);
-            painter.drawLine(0, radius - tickLong - 2, 0, radius); // longer ticks 45
-            painter.restore();
-        }
-
-        //Limit roll to 45 degrees
-        double clampedRoll = std::clamp(static_cast<double>(roll), -45.0, 45.0);
-
-        // Draw roll pointer
-        painter.save();
-        painter.rotate(-clampedRoll);
-
-        QPainterPath triangleSmall;
-        triangleSmall.moveTo(0, radius);
-        triangleSmall.lineTo(-pointerWidth, radius + pointerHeight);
-        triangleSmall.lineTo(pointerWidth, radius + pointerHeight);
-        triangleSmall.closeSubpath();
-
-        painter.setBrush(Qt::green);
-        painter.drawPath(triangleSmall);
-        QPainterPath triangleOuter;
-        triangleOuter.moveTo(0, radius);
-        triangleOuter.lineTo(-pointerWidth-2, radius + pointerHeight +2);
-        triangleOuter.lineTo(pointerWidth+2, radius + pointerHeight +2);
-        triangleOuter.closeSubpath();
-        painter.setBrush(Qt::transparent);
-        painter.drawPath(triangleOuter);
-        painter.restore();
-
-        // Draw center reference mark (flipped vertically)
-        QPainterPath centerMark;
-        centerMark.moveTo(0, radius - pointerHeight/2);
-        centerMark.lineTo(-centerMarkWidth + 1.5, radius - pointerHeight / 2 - centerMarkHeight + 3);
-        centerMark.lineTo(centerMarkWidth - 1.5, radius - pointerHeight / 2 - centerMarkHeight + 3);
-        centerMark.closeSubpath();
-
-        painter.setBrush(Qt::transparent);
-        painter.drawPath(centerMark);
+        QString textBattery = QString::number(float(batteryState));
+        painter.drawText(60, -70, "BATTERY:");
+        painter.setPen(QPen(Qt::white, 0.5));
+        painter.drawText(75, -70, textBattery + "V");
 
         painter.restore();
     }
@@ -528,6 +479,8 @@ private:
     float altitude;
     float speed;
     float heading;
+    int rpm;
+    float batteryState;
     std::string flightMode;
     std::string currTime;
     QString customFontFamily;  // Custom font name
