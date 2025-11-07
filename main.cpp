@@ -87,9 +87,10 @@ private slots:
         float altitudeRate = 2000.0f;
         float altitude = 200.0f + altitudeRate * std::sin(simTime * 0.2);
         int rpm = 2500.0f - 1000.0f * std::sin(simTime * 0.4);
-        float batteryState = 4.3f + 1.0f * std::sin(simTime * 5);
+        float batteryState = 4.2f + 1.0f * std::sin(simTime * 5);
+        // Quantity of propellers in uav (for rpm quantity)
+        int propQuantity = 4;
         std::string flightMode = "ATLC Takeoff Active";
-
         std::time_t now = std::time(nullptr);
         std::tm* localTime = std::localtime(&now);
         std::stringstream ss;
@@ -97,7 +98,7 @@ private slots:
         std::string timeStr = ss.str();
 
         // Update attitude indicator
-        attitudeIndicator->setAttitude(pitch, roll, altitude, speed, heading, flightMode, timeStr, rpm, batteryState);
+        attitudeIndicator->setAttitude(pitch, roll, altitude, speed, heading, flightMode, timeStr, rpm, batteryState, propQuantity);
 
         // Update displays
         altLabel->setText(QString("ALT: %1 ft").arg(altitude, 0, 'f', 1));

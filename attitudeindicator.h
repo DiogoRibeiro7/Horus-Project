@@ -18,7 +18,7 @@ public:
     }
 
 
-    void setAttitude(float pitchDeg, float rollDeg, float altFt, float speedKts, float headingDeg, std::string fltMode, std::string timeCurr, int rpmVal, float batteryStateVal) {
+    void setAttitude(float pitchDeg, float rollDeg, float altFt, float speedKts, float headingDeg, std::string fltMode, std::string timeCurr, int rpmVal, float batteryStateVal, int propQuantityVal) {
         pitch = -pitchDeg;
         roll = rollDeg;
         altitude = altFt;
@@ -28,6 +28,7 @@ public:
         currTime = timeCurr;
         rpm = rpmVal;
         batteryState = batteryStateVal;
+        propQuantity = propQuantityVal;
         update(); // Trigger repaint
     }
 
@@ -455,17 +456,30 @@ private:
 
         const int radius = 8;
 
-        painter.setPen(QPen(Qt::red, 0.5));
 
-        painter.drawArc(75, -40, 2*radius, 2*radius, 210 * 16, 280 * 16);
-        painter.setPen(QPen(Qt::yellow, 0.5));
-        painter.setFont(QFont(customFontFamily, 3));
-        QString textRpm = QString::number(int(rpm));
-        painter.drawText(77.5, -20, "RPM");
-        painter.setPen(QPen(Qt::white, 0.5));
-        painter.drawText(77.5, -30, textRpm);
+        int oldPos = -47.5;
+        for (int i=1; i<=propQuantity; i++) {
+            painter.setPen(QPen(Qt::red, 0.5));
+            painter.drawArc(-95, oldPos, 2*radius, 2*radius, 180 * 16, 270 * 16);
+            painter.setPen(QPen(Qt::yellow, 0.5));
+            painter.setFont(QFont(customFontFamily, 3));
+            QString textRpm = QString::number(int(rpm));
+            painter.drawText(-92.5, oldPos + 20, "RPM #" + QString::number(i));
+            painter.setPen(QPen(Qt::white, 0.5));
+            painter.drawText(-90, oldPos + 10, textRpm);
 
-        QString textBattery = QString::number(float(batteryState));
+            oldPos += 25;
+        }
+
+        /*// Draw roll marks (flipped vertically)
+        for (int angle = -20; angle <= 20; angle += 10) {
+            painter.save();
+            painter.rotate(angle);
+            painter.drawLine(75, -40, 70, -40); // short ticks 10,20
+            painter.restore();
+        }*/
+
+        QString textBattery = QString::number(float(batteryState), 'f',1);
         painter.drawText(60, -70, "BATTERY:");
         painter.setPen(QPen(Qt::white, 0.5));
         painter.drawText(75, -70, textBattery + "V");
@@ -481,6 +495,7 @@ private:
     float heading;
     int rpm;
     float batteryState;
+    int propQuantity;
     std::string flightMode;
     std::string currTime;
     QString customFontFamily;  // Custom font name
