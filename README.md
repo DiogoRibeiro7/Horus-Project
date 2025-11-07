@@ -18,6 +18,8 @@ A lightweight, customizable, and high-performance Primary Flight Display (PFD) b
 </div>
 
 ---
+## Latest Build Preview
+![Latest Update View](./images/hud_latest.png)
 
 ## 🦅 Overview
 
