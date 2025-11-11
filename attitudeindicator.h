@@ -18,7 +18,7 @@ public:
     }
 
 
-    void setAttitude(float pitchDeg, float rollDeg, float altFt, float speedKts, float headingDeg,float qnhVal, std::string fltMode, std::string timeCurr, const int rpmVal[4], float batteryStateVal, int propQuantityVal, float
+    void setAttitude(float pitchDeg, float rollDeg, float altFt, float speedKts, float headingDeg,float qnhVal, std::string fltMode, std::string timeCurr, const int rpmVal[4], float batteryStateVal, float batteryLevelVal,int propQuantityVal, float
         oatVal) {
         pitch = -pitchDeg;
         roll = rollDeg;
@@ -27,6 +27,7 @@ public:
         heading = headingDeg;
         flightMode = fltMode;
         currTime = timeCurr;
+        batteryLevel = batteryLevelVal;
         QNH = qnhVal;
         OAT = oatVal;
         for (int i = 0; i < 4; i++) {
@@ -84,6 +85,8 @@ protected:
         drawQNH(painter);
 
         drawCrosshair(painter);
+
+        drawBattery(painter);
     }
 
 private:
@@ -261,16 +264,16 @@ private:
     void drawAircraftSymbol(QPainter &painter) {
         painter.save();
 
-        painter.setPen(QPen(Qt::green, 0.5));
+        painter.setPen(QPen(Qt::green, 0.75));
 
         // Wings
-        painter.drawLine(-12, 1, -6, 1);
-        painter.drawLine(6, 1, 12, 1);
+        painter.drawLine(-11, 1, -4, 1);
+        painter.drawLine(4, 1, 11, 1);
         //W shape
-        painter.drawLine(-6, 1, -3, 4);
-        painter.drawLine(6, 1, 3, 4);
-        painter.drawLine(-3, 4, 0, 1);
-        painter.drawLine(3, 4, 0, 1);
+        painter.drawLine(-4, 1, -2, 3);
+        painter.drawLine(4, 1, 2, 3);
+        painter.drawLine(-2, 3, 0, 1);
+        painter.drawLine(2, 3, 0, 1);
 
         painter.restore();
     }
@@ -536,12 +539,26 @@ private:
             painter.drawLine(75, -40, 70, -40); // short ticks 10,20
             painter.restore();
         }*/
+    }
+
+    void drawBattery(QPainter &painter) {
+        painter.save();
 
         QString textBattery = QString::number(float(batteryState), 'f',1);
         painter.drawText(60, -70, "BATTERY:");
         painter.setPen(QPen(Qt::white, 0.5));
         painter.drawText(75, -70, textBattery + "V");
 
+        QRectF box(60, -71 - 12, 25, 6);
+        painter.setBrush(QColor(0, 0, 0, 200));
+        painter.drawRect(box);
+
+        const float width = 25 * batteryLevel;
+
+        QRectF fill(60, -71 - 12, width, 6);
+        painter.fillRect(fill, "#ffffffff");
+        painter.setPen(QPen(Qt::yellow, 0.5));
+        painter.drawText(60, -74, QString::number(float(batteryLevel * 100), 'f',1) + "%");
         painter.restore();
     }
 
@@ -571,6 +588,7 @@ private:
     float heading;
     int rpm[4];
     float batteryState;
+    float batteryLevel;
     int propQuantity;
     float QNH;
     float OAT;

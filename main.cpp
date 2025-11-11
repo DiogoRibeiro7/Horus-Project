@@ -19,7 +19,7 @@ class PFDMainWindow : public QMainWindow {
 public:
     PFDMainWindow(QWidget *parent = nullptr) : QMainWindow(parent) {
         setWindowTitle("UAV Primary Flight Display");
-        resize(1024, 768);
+        resize(1920, 1000);
         // Central widget
         QWidget *centralWidget = new QWidget(this);
         setCentralWidget(centralWidget);
@@ -76,7 +76,7 @@ public:
 private slots:
     void updateSimulation() {
         // Simulate flight data (replace with real telemetry parsing)
-        simTime += 0.02;
+        simTime += 0.0;
 
         // Simulate gentle banking and pitching
         float pitch = 90.0f * std::sin(simTime * 0.2);
@@ -88,13 +88,14 @@ private slots:
         float batteryState = 4.2f + 1.0f * std::sin(simTime * 5);
         // Quantity of propellers in uav (for rpm quantity)
         int propQuantity = 4;
+        float batteryLevel = 0.56f + 1.0f * std::sin(simTime * 0.02);
         int rpm[4] = {
             static_cast<int>(2500 + 1560.0f * std::sin(simTime * 0.2)),
             static_cast<int>(2500 + 1210.0f * std::sin(simTime * 0.25)),
             static_cast<int>(2500 + 1543.0f * std::sin(simTime * 0.27)),
             static_cast<int>(2500 + 1673.0f * std::sin(simTime * 0.29))
         };
-        float QNH = 29.92f;
+        float QNH = 29.92f + 1.0f * std::sin(simTime * 0.3) ;
         float altitude = 8500.00f + 1 * std::sin(simTime * 0.2);
         float OAT = 8.0f;
         std::string flightMode = "ATLC Takeoff Active";
@@ -105,7 +106,7 @@ private slots:
         std::string timeStr = ss.str();
 
         // Update attitude indicator
-        attitudeIndicator->setAttitude(pitch, roll, altitude, speed, heading,QNH, flightMode, timeStr, rpm, batteryState, propQuantity, OAT);
+        attitudeIndicator->setAttitude(pitch, roll, altitude, speed, heading,QNH, flightMode, timeStr, rpm, batteryState, batteryLevel, propQuantity, OAT);
 
         // Update displays
         altLabel->setText(QString("ALT: %1 ft").arg(altitude, 0, 'f', 1));
