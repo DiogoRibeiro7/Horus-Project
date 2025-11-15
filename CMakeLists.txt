@@ -10,7 +10,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_PREFIX_PATH "/opt/homebrew/opt/qt")
 
 # Find Qt6
-find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets SerialPort REQUIRED)
 
 add_executable(HORUS_PROJECT
         main.cpp
@@ -18,4 +18,4 @@ add_executable(HORUS_PROJECT
         resources.qrc          # Add this line
 )
 
-target_link_libraries(HORUS_PROJECT Qt6::Core Qt6::Widgets)
+target_link_libraries(HORUS_PROJECT Qt6::Core Qt6::Widgets Qt6::SerialPort)

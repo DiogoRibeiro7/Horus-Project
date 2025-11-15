@@ -84,7 +84,7 @@ protected:
 
         drawQNH(painter);
 
-        drawCrosshair(painter);
+        /*drawCrosshair(painter);*/
 
         drawBattery(painter);
     }

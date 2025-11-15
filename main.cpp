@@ -7,6 +7,8 @@
 #include <QWidget>
 #include <QFontDatabase>
 #include <QDebug>
+#include <QSerialPort>
+#include <QSerialPortInfo>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
@@ -18,7 +20,7 @@ class PFDMainWindow : public QMainWindow {
 
 public:
     PFDMainWindow(QWidget *parent = nullptr) : QMainWindow(parent) {
-        setWindowTitle("UAV Primary Flight Display");
+        setWindowTitle("Horus Project - UAV Primary Flight Display");
         resize(1920, 1000);
         // Central widget
         QWidget *centralWidget = new QWidget(this);
@@ -53,20 +55,21 @@ public:
 
         mainLayout->addWidget(attitudeIndicator, 1, Qt::AlignCenter);
 
-        // Bottom status bar
-        statusLabel = new QLabel("Status: Simulating flight data", this);
-        statusLabel->setFont(QFont("Arial", 10));
-        mainLayout->addWidget(statusLabel);
+        simTime = 0.02;
 
-        // Simulation timer (replace with real telemetry later)
-        simTimer = new QTimer(this);
-        connect(simTimer, &QTimer::timeout, this, &PFDMainWindow::updateSimulation);
-        simTimer->start(20); // 20 Hz update rate
-
-        simTime = 0.0;
+        // Initialize default values
+        pitch = 0.0f;
+        roll = 0.0f;
+        altitude = 8500.0f;
+        speed = 70.0f;
+        heading = 0.0f;
+        temperature = 25.0f;
 
         // Set fonts to AttitudeIndicator
         attitudeIndicator->setCustomFonts(PFDMainWindow::customFontFamily, nimbusMono);
+
+        // Try to connect to ESP32
+        setupSerialPort();
     }
 
     // Static member to hold font family name
@@ -74,19 +77,133 @@ public:
     static QString nimbusMono;
 
 private slots:
-    void updateSimulation() {
-        // Simulate flight data (replace with real telemetry parsing)
-        simTime += 0.0;
+    void setupSerialPort() {
+        serialPort = new QSerialPort(this);
 
-        // Simulate gentle banking and pitching
-        float pitch = 90.0f * std::sin(simTime * 0.2);
-        float roll = 180.0f * std::sin(simTime * 0.5);
-        float speed = 70.0f + 230.0f * std::sin(simTime * 0.4);
-        float heading = std::fmod(simTime * 10.0, 360.0);
-        // Simulate other parameters
+        // Configure for your ESP32 port
+        serialPort->setPortName("/dev/cu.usbserial-0001");
+        serialPort->setBaudRate(QSerialPort::Baud115200);
+        serialPort->setDataBits(QSerialPort::Data8);
+        serialPort->setParity(QSerialPort::NoParity);
+        serialPort->setStopBits(QSerialPort::OneStop);
+        serialPort->setFlowControl(QSerialPort::NoFlowControl);
+
+        if (serialPort->open(QIODevice::ReadOnly)) {
+
+            // Connect signal for incoming data
+            connect(serialPort, &QSerialPort::readyRead, this, &PFDMainWindow::readSerialData);
+
+            // Start update timer for other data
+            simTimer = new QTimer(this);
+            connect(simTimer, &QTimer::timeout, this, &PFDMainWindow::updateDisplay);
+            simTimer->start(20); // 50 Hz update rate
+        } else {
+            startSimulation();
+        }
+    }
+
+    void readSerialData() {
+    // Read all available data
+    QByteArray data = serialPort->readAll();
+
+    serialBuffer += data;
+
+    // Process complete lines
+    while (serialBuffer.contains('\n')) {
+        int newlineIndex = serialBuffer.indexOf('\n');
+        QString line = serialBuffer.left(newlineIndex).trimmed();
+        serialBuffer.remove(0, newlineIndex + 1);
+
+        if (!line.isEmpty()) {
+            parseSerialLine(line);
+        }
+    }
+}
+
+    void parseSerialLine(const QString &line) {
+
+    QStringList parts = line.split(',');
+
+    if (parts.size() >= 2) {
+        bool ok1, ok2;
+        float newPitch = parts[0].toFloat(&ok1);  // REAL pitch from MPU6050
+        float newRoll = parts[1].toFloat(&ok2);   // REAL roll from MPU6050
+
+        if (ok1 && ok2) {
+            // Update with REAL sensor data
+            pitch = newPitch;
+            roll = newRoll;
+
+            // Debug output
+            qDebug() << "MPU6050 - Pitch:" << pitch << "Roll:" << roll;
+
+            static int frameCount = 0;
+            frameCount++;
+        } else {
+            qWarning() << "Failed to parse pitch/roll:" << line;
+        }
+    } else {
+        qWarning() << "Invalid data format:" << line;
+    }
+}
+
+void updateDisplay() {
+    // This runs at 50Hz and updates the display with REAL pitch/roll from ESP32
+
+    // Simulate other parameters (altitude, speed, etc.)
+    simTime += 0.02;
+
+    speed = 70.0f + 30.0f * std::sin(simTime * 0.4);
+    heading = std::fmod(simTime * 10.0, 360.0);
+    float batteryState = 4.2f + 0.2f * std::sin(simTime * 5);
+    int propQuantity = 4;
+    float batteryLevel = 0.56f + 0.1f * std::sin(simTime * 0.02);
+    int rpm[4] = {
+        static_cast<int>(2500 + 500.0f * std::sin(simTime * 0.2)),
+        static_cast<int>(2500 + 400.0f * std::sin(simTime * 0.25)),
+        static_cast<int>(2500 + 450.0f * std::sin(simTime * 0.27)),
+        static_cast<int>(2500 + 480.0f * std::sin(simTime * 0.29))
+    };
+    float QNH = 29.92f + 0.1f * std::sin(simTime * 0.3);
+    altitude = 8500.00f + 100.0f * std::sin(simTime * 0.2);
+    float OAT = 15.0f; // Fixed outside air temperature
+    std::string flightMode = "MANUAL - MPU6050 Active";
+
+    std::time_t now = std::time(nullptr);
+    std::tm* localTime = std::localtime(&now);
+    std::stringstream ss;
+    ss << std::put_time(localTime, "%H:%M:%S");
+    std::string timeStr = ss.str();
+
+    // *** USE REAL PITCH AND ROLL FROM MPU6050 ***
+    attitudeIndicator->setAttitude(pitch, roll, altitude, speed, heading,
+                                  QNH, flightMode, timeStr, rpm,
+                                  batteryState, batteryLevel, propQuantity, OAT);
+
+    // Update top labels
+    altLabel->setText(QString("ALT: %1 ft").arg(altitude, 0, 'f', 1));
+    speedLabel->setText(QString("SPD: %1 kts").arg(speed, 0, 'f', 1));
+    headingLabel->setText(QString("Pitch:%1° Roll:%2°").arg(pitch, 0, 'f', 1).arg(roll, 0, 'f', 1));
+}
+
+    void startSimulation() {
+        // Fallback simulation mode if ESP32 not connected
+        simTimer = new QTimer(this);
+        connect(simTimer, &QTimer::timeout, this, &PFDMainWindow::updateSimulation);
+        simTimer->start(20);
+    }
+
+    void updateSimulation() {
+        // Full simulation mode (when ESP32 not connected)
+        simTime += 0.02;
+
+        pitch = 90.0f * std::sin(simTime * 0.2);
+        roll = 180.0f * std::sin(simTime * 0.5);
+        speed = 70.0f + 230.0f * std::sin(simTime * 0.4);
+        heading = std::fmod(simTime * 10.0, 360.0);
+
         float altitudeRate = 2000.0f;
         float batteryState = 4.2f + 1.0f * std::sin(simTime * 5);
-        // Quantity of propellers in uav (for rpm quantity)
         int propQuantity = 4;
         float batteryLevel = 0.56f + 1.0f * std::sin(simTime * 0.02);
         int rpm[4] = {
@@ -95,20 +212,21 @@ private slots:
             static_cast<int>(2500 + 1543.0f * std::sin(simTime * 0.27)),
             static_cast<int>(2500 + 1673.0f * std::sin(simTime * 0.29))
         };
-        float QNH = 29.92f + 1.0f * std::sin(simTime * 0.3) ;
-        float altitude = 8500.00f + 1 * std::sin(simTime * 0.2);
+        float QNH = 29.92f + 1.0f * std::sin(simTime * 0.3);
+        altitude = 8500.00f + 1000.0f * std::sin(simTime * 0.2);
         float OAT = 8.0f;
         std::string flightMode = "ATLC Takeoff Active";
+
         std::time_t now = std::time(nullptr);
         std::tm* localTime = std::localtime(&now);
         std::stringstream ss;
         ss << std::put_time(localTime, "%H:%M:%S");
         std::string timeStr = ss.str();
 
-        // Update attitude indicator
-        attitudeIndicator->setAttitude(pitch, roll, altitude, speed, heading,QNH, flightMode, timeStr, rpm, batteryState, batteryLevel, propQuantity, OAT);
+        attitudeIndicator->setAttitude(pitch, roll, altitude, speed, heading,
+                                      QNH, flightMode, timeStr, rpm,
+                                      batteryState, batteryLevel, propQuantity, OAT);
 
-        // Update displays
         altLabel->setText(QString("ALT: %1 ft").arg(altitude, 0, 'f', 1));
         speedLabel->setText(QString("SPD: %1 kts").arg(speed, 0, 'f', 1));
         headingLabel->setText(QString("Roll: %1°").arg(roll, 0, 'f', 0));
@@ -121,7 +239,19 @@ private:
     QLabel *headingLabel;
     QLabel *statusLabel;
     QTimer *simTimer;
+    QSerialPort *serialPort;
+    QByteArray serialBuffer;
     double simTime;
+
+    // Real-time sensor data from ESP32
+    float pitch;
+    float roll;
+    float temperature;
+
+    // Simulated data
+    float altitude;
+    float speed;
+    float heading;
 };
 
 // Define static member
@@ -131,23 +261,25 @@ QString PFDMainWindow::nimbusMono = "Nimbus Mono PS";
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
-    // Load custom font
-    int fontId1 = QFontDatabase::addApplicationFont(":/fonts/armarurgt.ttf");int fontId2 = QFontDatabase::addApplicationFont(":/fonts/NimbusMono.otf");
-    QString nimbusMonoFamily = "Nimbus Mono PS"; // fallback
+    // Load custom fonts
+    int fontId1 = QFontDatabase::addApplicationFont(":/fonts/armarurgt.ttf");
+    int fontId2 = QFontDatabase::addApplicationFont(":/fonts/NimbusMono.otf");
+
     if (fontId1 != -1) {
-        QStringList families = QFontDatabase::applicationFontFamilies(fontId2);
+        QStringList families = QFontDatabase::applicationFontFamilies(fontId1);
         if (!families.isEmpty()) {
-            nimbusMonoFamily = families.at(0);
-            qDebug() << "NimbusMono loaded" << nimbusMonoFamily;
+            PFDMainWindow::customFontFamily = families.at(0);
+            qDebug() << "✅ Loaded armarurgt font:" << PFDMainWindow::customFontFamily;
         }
     } else {
         PFDMainWindow::customFontFamily = "Courier";
     }
+
     if (fontId2 != -1) {
         QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId2);
         if (!fontFamilies.isEmpty()) {
             PFDMainWindow::nimbusMono = fontFamilies.at(0);
-            qDebug() << "Loaded NimbusMono font" << PFDMainWindow::nimbusMono;
+            qDebug() << "✅ Loaded NimbusMono font:" << PFDMainWindow::nimbusMono;
         }
     } else {
         PFDMainWindow::nimbusMono = "Nimbus Mono PS";
